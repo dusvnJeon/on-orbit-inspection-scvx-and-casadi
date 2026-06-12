@@ -2,10 +2,10 @@
 
 봐야할 코드: 
 
-rockit_implement_1.py : translation 문제 코드
-rockit_implement_2.py : rotation 문제 코드
-dynamics_residuals.py : 결과 csv로부터 residual과 cost를 요약해서 출력해주는 코드
-plot_solution_histories.py : (F,v), (Tau,omega) 를 위아래로 plot해주는 코드
+- rockit_implement_1.py: translation 문제 코드
+- rockit_implement_2.py: rotation 문제 코드
+- dynamics_residuals.py: 결과 csv로부터 residual과 cost를 요약해서 출력해주는 코드
+- plot_solution_histories.py: (F,v), (Tau,omega) 를 위아래로 plot해주는 코드
 
 
 
