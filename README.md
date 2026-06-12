@@ -7,6 +7,10 @@
 - dynamics_residuals.py: 결과 csv로부터 residual과 cost를 요약해서 출력해주는 코드
 - plot_solution_histories.py: (F,v), (Tau,omega) 를 위아래로 plot해주는 코드
 
+Directory: 
+- cvxpy_scvx: cvxpy 기반의 scvx 방식 문제 풀이 코드 (실행시 arg를 안주면 cold start가 됨. arg를 rockit csv로 줘서 warm start로 돌리면 됨)
+- rockit_outputs: 이게 지금 2개 있는데 실행 경로 다르게 하고 돌려서 이렇게 됏어욤......
+- rockit: 여기에 rockit관련 code들어있습니다
 
 ---
 
