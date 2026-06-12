@@ -8,7 +8,7 @@
 - plot_solution_histories.py: (F,v), (Tau,omega) 를 위아래로 plot해주는 코드
 
 
-
+---
 
 docs: rockit 폴더의 주요 코드와 실행 흐름 설명
 
