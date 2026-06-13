@@ -4,13 +4,20 @@ from dynamics_rollout import *
 import numpy as np
 from pathlib import Path
 from math import floor
+import time
 
 from problem_parameters import PARAMS
 from solution_io import save_rotational_solution_csv
 
 p = PARAMS
 J = p.inertia_diag
-ATTITUDE_STEP = p.attitude_step
+# ATTITUDE_STEP = p.attitude_step
+ATTITUDE_STEP = 1.0
+_TIC = time.perf_counter()
+
+
+def log_step(message):
+    print(f"[{time.perf_counter() - _TIC:8.2f}s] {message}", flush=True)
 
 
 c_t_c = p.c_t_c             # cheif 기저에서 본 cheif의 위치 벡터
@@ -144,11 +151,16 @@ def create_rotational_stage(ocp, phase_num, phase_start_times, phase_durations, 
     return stage, xi, tau
 
 ocp = Ocp()
+log_step("Created OCP")
 
 csv_path = Path("rockit_outputs") / "translational_solution.csv"
 translation_phase_durations = load_phase_times_from_csv(csv_path)
 phase_durations, phase_grid_counts, phase_start_times = attitude_phase_schedule_from_translation(
     translation_phase_durations
+)
+log_step(
+    "Loaded translational phase times: "
+    f"T={phase_durations}, N={phase_grid_counts}, total_N={sum(phase_grid_counts)}"
 )
 
 
@@ -161,6 +173,7 @@ stage1, xi1, tau1 = create_rotational_stage(
     phase_grid_counts=phase_grid_counts,
 )
 ocp.subject_to(stage1.at_t0(xi1) == ca.DM(xi_init))
+log_step("Built phase 1")
 
 # Phase2 : Inspection Phase
 stage2, xi2, tau2 = create_rotational_stage(
@@ -171,6 +184,7 @@ stage2, xi2, tau2 = create_rotational_stage(
     phase_grid_counts=phase_grid_counts,
 )
 ocp.subject_to(stage1.at_tf(xi1) == stage2.at_t0(xi2))
+log_step("Built phase 2")
 
 # Phase3 : Moving Phase
 stage3, xi3, tau3 = create_rotational_stage(
@@ -181,6 +195,7 @@ stage3, xi3, tau3 = create_rotational_stage(
     phase_grid_counts=phase_grid_counts,
 )
 ocp.subject_to(stage2.at_tf(xi2) == stage3.at_t0(xi3))
+log_step("Built phase 3")
 
 # Phase4 : Docking Phase
 stage4, xi4, tau4 = create_rotational_stage(
@@ -192,6 +207,7 @@ stage4, xi4, tau4 = create_rotational_stage(
 )
 ocp.subject_to(stage3.at_tf(xi3) == stage4.at_t0(xi4))
 ocp.subject_to(stage4.at_tf(xi4) == ca.DM(xi_final))
+log_step("Built phase 4 and boundary constraints")
 
 
 # objective (minimize control effort)
@@ -203,7 +219,8 @@ for stage, tau, T in [
     (stage4, tau4, phase_durations[3]),
 ]:
     # 연료 norm 최소화
-    stage.add_objective(ATTITUDE_STEP * stage.sum(ca.sqrt(ca.sumsqr(tau) + eps)))
+    stage.add_objective(ATTITUDE_STEP * stage.sum((ca.sumsqr(tau) + eps)))
+log_step("Added objective")
 
 # initial guess 설정. 근데 tau는 다 0으로 두고, quaternion은 phase 1,2는 초기값, 2,3은 끝값 사용
 for stage, xi, tau, xi_guess in [
@@ -214,20 +231,34 @@ for stage, xi, tau, xi_guess in [
 ]:
     stage.set_initial(xi, ca.DM(xi_guess))
     stage.set_initial(tau, ca.DM.zeros(3, 1))
+log_step("Set initial guesses")
 
 ocp.solver(
     "ipopt",
     {
-        "ipopt.max_iter": 10000,
+        "ipopt.tol": 1e-5,
+        "ipopt.acceptable_tol": 1e-3,
+        "ipopt.acceptable_iter": 5,
+        "ipopt.constr_viol_tol": 1e-6,
+        "ipopt.acceptable_constr_viol_tol": 1e-6,
+        "ipopt.acceptable_dual_inf_tol": 1e2,
+        "ipopt.acceptable_compl_inf_tol": 1e-3,
+        "ipopt.max_iter": 1500,
         "ipopt.print_level": 5,
+        "ipopt.mumps_mem_percent": 5000,
+        "ipopt.hessian_approximation": "limited-memory",
+        "print_time": True,
     },
 )
+log_step("Configured IPOPT solver")
 
         # "ipopt.acceptable_tol": 1e-5,
         # "ipopt.acceptable_iter": 20,
         # "ipopt.mumps_mem_percent": 5000,
 
+log_step("Starting IPOPT solve")
 sol = ocp.solve()
+log_step("Finished IPOPT solve")
 
 stages = [stage1, stage2, stage3, stage4]
 xis = [xi1, xi2, xi3, xi4]
