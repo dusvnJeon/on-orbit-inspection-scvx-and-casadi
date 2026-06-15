@@ -1,5 +1,7 @@
 # on-orbit-inspection-scvx-and-casadi
 
+## 주요 실험 결과는 compare_data/core_data 안에 있습니다!
+
 - AL-iLQR/DDP translation 실험 결과 CSV를 추가했습니다.
 - `compare_data/core data/` 폴더에 attitude/translation 비교용 핵심 데이터를 정리했습니다.
 - AL-iLQR/DDP, Rockit, SCvx 결과 비교 그림을 추가했습니다.
